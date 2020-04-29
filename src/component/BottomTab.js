@@ -7,6 +7,11 @@ import { Card, Icon } from 'react-native-elements';
 import React from 'react';
 import { Text, TouchableNativeFeedback, View } from 'react-native';
 // 底部导航栏
+
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+
+const Tab = createBottomTabNavigator();
+
 const bottomNavigator = createBottomTabNavigator(
   {
     Login: {
@@ -33,14 +38,13 @@ const bottomNavigator = createBottomTabNavigator(
   //实现自定义面板 底部(实现自定义隐藏显示)；
   {
     tabBarComponent: ({ route, srouteIndex, navigation }) => {
-      // const { renderIcon, getLabelText, activeTintColor, inactiveTintColor, onTabPress, onTabLongPress, getAccessibilityLabel, navigation } = props;
       const { routes, index: activeRouteIndex } = navigation.state;
       return (
         <View style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end' }}>
           {routes.map((route, routeIndex) => {
             return (
-              <View>
-                <Text key={routeIndex}>111</Text>
+              <View key={routeIndex}>
+                <Text>测试</Text>
               </View>
             );
           })}

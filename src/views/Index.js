@@ -28,20 +28,6 @@ export default class Index extends Component {
   componentDidMount() {
     this.fetchRecords();
   }
-
-  select = () => {
-    util.get(
-      'http://api.douban.com/v2/movie/search?q=' + this.state.search + '&apikey=' + this.state.apiKey + '&start=' + this.state.start + '&count=' + this.state.count + '',
-      (res) => {
-        console.log(res);
-      }
-    );
-  };
-
-  updateSearch = (search) => {
-    this.setState({ search });
-  };
-  selectAddress = () => {};
   renderCard(item) {
     return (
       <Card>
@@ -56,6 +42,7 @@ export default class Index extends Component {
               flexDirection: 'column',
               justifyContent: 'flex-start'
             }}
+            key={item}
           >
             <View>
               <Text Style={{ fontWeight: '900' }}>{item.title.length > 11 ? item.title.slice(0, 11) : item.title}</Text>
@@ -135,30 +122,16 @@ export default class Index extends Component {
       </Card>
     );
   }
-
   render() {
-    const { search } = this.state;
-    const { loading } = this.state;
     return (
       <View>
-        {/*傻逼豆瓣不提供搜索API*/}
-        {/*<SearchBar*/}
-        {/*  platform={'android'}*/}
-        {/*  showLoading={loading}*/}
-        {/*  inputContainerStyle={{ backgroundColor: '#dcdce1', borderRadius: 10 }}*/}
-        {/*  containerStyle={{ backgroundColor: '#f5f5f5', margin: 4 }}*/}
-        {/*  placeholder="请输入你要搜索的关键字"*/}
-        {/*  onBlur={this.select}*/}
-        {/*  value={search}*/}
-        {/*  onChangeText={this.updateSearch}*/}
-        {/*/>*/}
         <FlatList
           extraData={this.state}
           removeClippedSubviews={true}
           data={this.state.ds}
           windowSize={10}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => this.renderCard(item)}
+          renderItem={({ item }) => this.renderCard(item, item.id)}
         />
       </View>
     );
