@@ -137,7 +137,7 @@ export default class About extends Component {
                 flexDirection: 'row'
               }}
             >
-              <Text Style={{ opacity: 0.7, fontSize: 15 }}>上映时间:</Text>
+              <Text Style={{ opacity: 0.8, fontSize: 15 }}>上映日期:</Text>
               <Text Style={{ fontWeight: '200', fontSize: 18, opacity: 0.7 }}>{item.mainland_pubdate}</Text>
             </View>
           </View>
