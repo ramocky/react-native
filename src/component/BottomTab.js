@@ -7,14 +7,9 @@ import { Card, Icon } from 'react-native-elements';
 import React from 'react';
 import { Text, TouchableNativeFeedback, View } from 'react-native';
 // 底部导航栏
-
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-
-const Tab = createBottomTabNavigator();
-
 const bottomNavigator = createBottomTabNavigator(
   {
-    Login: {
+      Login: {
       screen: Login,
       navigationOptions: ({ navigation }) => ({
         headerShown: false,
