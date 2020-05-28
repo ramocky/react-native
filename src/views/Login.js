@@ -1,48 +1,24 @@
 import React, { Component } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Avatar, Button, Icon, Text, Image } from 'react-native-elements';
-import util from '../util/axios';
+
 export default class Login extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      name:'',
+      pwd:'',
       loading: false,
       isVisible: false,
-      url: {},
-      city: '厦门', //城市
-      count: 30, //条数
-      start: 1, //页数
-      apiKey: '0df993c66c0c636e29ecbb5344252a4a', //key
-      img: 'http://img3.doubanio.com/view/photo/s_ratio_poster/public/p2576090251.jpg'
     };
   }
-
-  handLogin = () => {
+  handleLogin = () => {
     this.setState({ loading: true });
-    this.props.navigation.navigate('Index');
-    this.setState({ loading: false });
+    setTimeout(()=> {
+      this.props.navigation.navigate('Index')
+      this.setState({ loading: false });
+    },1000)
   };
-  componentDidMount() {
-    // util.get(
-    //   'http://api.douban.com/v2/movie/in_theaters?city=' + this.state.city + '&apikey=' + this.state.apiKey + '&start=' + this.state.start + '&count=' + this.state.count + '',
-    //   (res) => {
-    //     var temp = [];
-    //     res.subjects.forEach((item) => {
-    //       temp.push(item.images.small);
-    //     });
-    //     this.setState({ url: temp });
-    //
-    //     this.setState({ img: temp[0] });
-    //     var i = 1;
-    //     setInterval(() => {
-    //       i = i + 1;
-    //       console.log(temp[i]);
-    //       this.setState({ img: temp[i] });
-    //     }, 5000);
-    //   }
-    // );
-  }
-
   render() {
     return (
       <View style={styles.bg}>
@@ -61,13 +37,14 @@ export default class Login extends Component {
           onChangeText={(text) => {
             this.setState({ pwd: text });
           }}
+          secureTextEntry={true}
         />
         <View style={{ marginTop: 20 }}>
           <Button
             title="登录"
             buttonStyle={{ backgroundColor: 'black' }}
             onPress={() => {
-              this.handLogin();
+              this.handleLogin();
             }}
             loading={this.state.loading}
           />

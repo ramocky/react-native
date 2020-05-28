@@ -8,7 +8,7 @@ export default class Index extends Component {
     super(props);
     this.state = {
       ds: [],
-      city: '厦门', //城市
+      city: '北京', //城市
       count: 100, //条数
       start: 1, //页数
       apiKey: '0df993c66c0c636e29ecbb5344252a4a', //key

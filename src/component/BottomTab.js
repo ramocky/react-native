@@ -9,20 +9,20 @@ import { Text, TouchableNativeFeedback, View } from 'react-native';
 // 底部导航栏
 const bottomNavigator = createBottomTabNavigator(
   {
-      Login: {
-      screen: Login,
-      navigationOptions: ({ navigation }) => ({
-        headerShown: false,
-        title: '登录',
-        tabBarVisible: false
-      })
-    },
     Index: {
       screen: Index,
       navigationOptions: ({ navigation }) => ({
         title: '精彩热映'
       })
     },
+    // Login: {
+    //   screen: Login,
+    //   navigationOptions: ({ navigation }) => ({
+    //     headerShown: false,
+    //     title: '登录',
+    //     tabBarVisible: false
+    //   })
+    // },
     About: {
       screen: About,
       navigationOptions: ({ navigation }) => ({
@@ -32,20 +32,7 @@ const bottomNavigator = createBottomTabNavigator(
   },
   //实现自定义面板 底部(实现自定义隐藏显示)；
   {
-    tabBarComponent: ({ route, srouteIndex, navigation }) => {
-      const { routes, index: activeRouteIndex } = navigation.state;
-      return (
-        <View style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end' }}>
-          {routes.map((route, routeIndex) => {
-            return (
-              <View key={routeIndex}>
-                <Text>测试</Text>
-              </View>
-            );
-          })}
-        </View>
-      );
-    },
+    initialRouteName:'Index',
     defaultNavigationOptions: ({ navigation }) => ({
       tabBarIcon: ({ focused, horizontal, tintColor }) => {
         const { routeName } = navigation.state;
