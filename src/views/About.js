@@ -12,8 +12,8 @@ export default class About extends Component {
     super(props);
     this.state = {
       ds: [],
-      city: '厦门', //城市
-      count: 30, //条数
+      city: '广东', //城市
+      count: 10, //条数
       start: 1, //页数
       apiKey: '0df993c66c0c636e29ecbb5344252a4a', //key
       search: ''
@@ -32,6 +32,7 @@ export default class About extends Component {
         '&total=100',
       (res) => {
         this.setState({ ds: this.state.ds.concat(res.subjects) });
+        console.log(res)
       }
     );
   };

@@ -15,6 +15,12 @@ const bottomNavigator = createBottomTabNavigator(
         title: '精彩热映'
       })
     },
+    About: {
+      screen: About,
+      navigationOptions: ({ navigation }) => ({
+        title: '即将上映'
+      })
+    }
     // Login: {
     //   screen: Login,
     //   navigationOptions: ({ navigation }) => ({
@@ -23,12 +29,6 @@ const bottomNavigator = createBottomTabNavigator(
     //     tabBarVisible: false
     //   })
     // },
-    About: {
-      screen: About,
-      navigationOptions: ({ navigation }) => ({
-        title: '即将上映'
-      })
-    }
   },
   //实现自定义面板 底部(实现自定义隐藏显示)；
   {
