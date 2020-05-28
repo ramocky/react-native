@@ -12,7 +12,7 @@ const bottomNavigator = createBottomTabNavigator(
     Index: {
       screen: Index,
       navigationOptions: ({ navigation }) => ({
-        title: '精彩热映'
+        title: '精彩热映',
       })
     },
     About: {
