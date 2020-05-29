@@ -6,18 +6,18 @@ export default class Login extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      name:'',
-      pwd:'',
+      name: '',
+      pwd: '',
       loading: false,
-      isVisible: false,
+      isVisible: false
     };
   }
   handleLogin = () => {
     this.setState({ loading: true });
-    setTimeout(()=> {
-      this.props.navigation.navigate('Index')
+    setTimeout(() => {
+      this.props.navigation.navigate('Index');
       this.setState({ loading: false });
-    },1000)
+    }, 1000);
   };
   render() {
     return (
