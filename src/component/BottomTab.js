@@ -20,15 +20,7 @@ const bottomNavigator = createBottomTabNavigator(
       navigationOptions: ({ navigation }) => ({
         title: '即将上映'
       })
-    }
-    // Login: {
-    //   screen: Login,
-    //   navigationOptions: ({ navigation }) => ({
-    //     headerShown: false,
-    //     title: '登录',
-    //     tabBarVisible: false
-    //   })
-    // },
+    },
   },
   //实现自定义面板 底部(实现自定义隐藏显示)；
   {
