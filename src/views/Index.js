@@ -20,13 +20,14 @@ export default class Index extends Component {
     util.get(
       'http://api.douban.com/v2/movie/in_theaters?city=' + this.state.city + '&apikey=' + this.state.apiKey + '&start=' + this.state.start + '&count=' + this.state.count + '',
       (res) => {
+        console.log(res)
         this.setState({ ds: this.state.ds.concat(res.subjects) });
         // this.setState({ count: this.state.count });
       }
     );
   };
   componentDidMount() {
-    this.fetchRecords();
+    // this.fetchRecords();
   }
   renderCard(item) {
     return (

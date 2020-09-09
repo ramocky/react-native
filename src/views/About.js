@@ -37,7 +37,7 @@ export default class About extends Component {
     );
   };
   componentDidMount() {
-    this.fetchRecords();
+    // this.fetchRecords();
   }
   updateSearch = (search) => {
     this.setState({ search });
