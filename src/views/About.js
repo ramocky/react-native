@@ -32,7 +32,7 @@ export default class About extends Component {
         '&total=100',
       (res) => {
         this.setState({ ds: this.state.ds.concat(res.subjects) });
-        console.log(res)
+        console.log(res);
       }
     );
   };
