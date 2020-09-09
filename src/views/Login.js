@@ -15,7 +15,7 @@ export default class Login extends Component {
   handleLogin = () => {
     this.setState({ loading: true });
     setTimeout(() => {
-      this.props.navigation.navigate('Index');
+      this.props.navigation.navigate('First', { title: '精彩上映' });
       this.setState({ loading: false });
     }, 1000);
   };
