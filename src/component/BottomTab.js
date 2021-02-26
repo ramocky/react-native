@@ -8,9 +8,8 @@ import React from 'react';
 import { Text, TouchableNativeFeedback, View } from 'react-native';
 // 底部导航栏
 
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+// import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-const Tab = createBottomTabNavigator();
 
 const bottomNavigator = createBottomTabNavigator(
   {
@@ -37,20 +36,7 @@ const bottomNavigator = createBottomTabNavigator(
   },
   //实现自定义面板 底部(实现自定义隐藏显示)；
   {
-    tabBarComponent: ({ route, srouteIndex, navigation }) => {
-      const { routes, index: activeRouteIndex } = navigation.state;
-      return (
-        <View style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end' }}>
-          {routes.map((route, routeIndex) => {
-            return (
-              <View key={routeIndex}>
-                <Text>测试</Text>
-              </View>
-            );
-          })}
-        </View>
-      );
-    },
+
     defaultNavigationOptions: ({ navigation }) => ({
       tabBarIcon: ({ focused, horizontal, tintColor }) => {
         const { routeName } = navigation.state;
