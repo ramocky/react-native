@@ -8,44 +8,33 @@ import React from 'react';
 import { Text, TouchableNativeFeedback, View } from 'react-native';
 // 底部导航栏
 
-// import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-
-
 const bottomNavigator = createBottomTabNavigator(
   {
-    Login: {
-      screen: Login,
-      navigationOptions: ({ navigation }) => ({
-        headerShown: false,
-        title: '登录',
-        tabBarVisible: false
-      })
-    },
     Index: {
       screen: Index,
       navigationOptions: ({ navigation }) => ({
-        title: '精彩热映'
+        title: '每日推荐'
       })
     },
     About: {
       screen: About,
       navigationOptions: ({ navigation }) => ({
-        title: '即将上映'
+        title: '猜你喜欢'
       })
     }
   },
   //实现自定义面板 底部(实现自定义隐藏显示)；
   {
-
     defaultNavigationOptions: ({ navigation }) => ({
       tabBarIcon: ({ focused, horizontal, tintColor }) => {
         const { routeName } = navigation.state;
         if (routeName === 'Index') {
-          return <Icon name="ios-videocam" type="ionicon" />;
+          return <Icon name="ios-musical-notes" type="ionicon" />;
         }
         if (routeName === 'About') {
-          return <Icon name="ios-planet" type="ionicon" />;
+          return <Icon name="ios-musical-note" type="ionicon" />;
         }
+
       }
     }),
     backBehavior: 'none',
