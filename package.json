@@ -11,16 +11,19 @@
     "postinstall": "jetifier -r"
   },
   "dependencies": {
+    "@react-native-community/toolbar-android": "0.1.0-rc.2",
     "axios": "^0.19.0",
     "react": "16.9.0",
     "react-native": "0.61.5",
-    "react-native-elements": "^1.2.7",
+    "react-native-elements": "^3.1.0",
     "react-native-gesture-handler": "^1.5.1",
     "react-native-navigation": "^3.7.0",
     "react-native-pose": "^0.9.1",
     "react-native-reanimated": "^1.4.0",
+    "react-native-safe-area-context": "^3.1.9",
     "react-native-screens": "^1.0.0-alpha.23",
-    "react-native-vector-icons": "^6.6.0",
+    "react-native-status-bar-height": "^2.6.0",
+    "react-native-vector-icons": "^6.7.0",
     "react-navigation": "^4.0.10",
     "react-navigation-stack": "^1.10.3",
     "react-navigation-tabs": "^2.6.0"
