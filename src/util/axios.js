@@ -5,6 +5,7 @@ axios.headers = {
   'Content-Type': 'application/json;charset=UTF-8',
   withCredentials: true
 };
+let baseUrl = 'http://43.128.11.57:3000';
 //请求拦截器
 axios.interceptors.request.use(
   function(config) {
@@ -29,7 +30,7 @@ axios.interceptors.response.use(
 function get(url, success) {
   return axios({
     method: 'GET',
-    url: url,
+    url: baseUrl + url,
     header: { Accept: 'application/json' }
   })
     .then(success)
@@ -41,7 +42,7 @@ function get(url, success) {
 function post(url, data, success) {
   return axios({
     method: 'POST',
-    url: url,
+    url: baseUrl + url,
     data: data
   })
     .then(success)

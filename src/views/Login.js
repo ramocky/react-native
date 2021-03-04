@@ -12,19 +12,15 @@ export default class Login extends Component {
     };
   }
   componentDidMount() {
-    //免登陆
-    if (global.cookie != ' ') {
-       this.props.navigation.navigate('bottomTabNavigator');
-    }
-    util.get('https://netease-cloud-music-api-azure.vercel.app/login/status', (res) => {
-      if (res.data.code === 200 && res.data.profile.nickname) {
-       this.props.navigation.navigate('bottomTabNavigator');
+    util.get('/login/status', (res) => {
+      if (res.data.code === 200 && res.data.account !== null) {
+        this.props.navigation.navigate('bottomTabNavigator');
       }
     });
   }
   handLogin = () => {
     this.setState({ loading: true });
-    util.get('https://netease-cloud-music-api-azure.vercel.app/login/cellphone?phone=' + this.state.name + '&password=' + this.state.pwd, (res) => {
+    util.get('/login/cellphone?phone=' + this.state.name + '&password=' + this.state.pwd, (res) => {
       if (res.cookie) {
         global.cookie = res.cookie;
         this.props.navigation.navigate('bottomTabNavigator');
