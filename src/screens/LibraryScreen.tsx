@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TrackRow } from '../components/TrackRow';
 import type { RootStackParamList } from '../navigation/types';
 import { useLibrary } from '../state/library';
 import { usePlayerActions } from '../state/player';
-import { theme } from '../theme';
+import { useTheme } from '../theme';
+import type { Theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Library'>;
 
 type Tab = 'favorites' | 'recent';
 
 const LibraryScreen: React.FC<Props> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { favorites, recent, toggleFavorite } = useLibrary();
   const player = usePlayerActions();
   const [tab, setTab] = useState<Tab>('favorites');
@@ -74,55 +77,56 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.bg,
-  },
-  tabs: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 8,
-  },
-  tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.border,
-  },
-  tabActive: {
-    backgroundColor: theme.surface,
-    borderColor: theme.accent,
-  },
-  tabText: {
-    color: theme.muted,
-    fontSize: 12,
-  },
-  tabTextActive: {
-    color: theme.text,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  empty: {
-    color: theme.text,
-    fontSize: 15,
-  },
-  hint: {
-    color: theme.muted,
-    fontSize: 12,
-    marginTop: 8,
-  },
-  footerHint: {
-    color: theme.muted,
-    fontSize: 11,
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.bg,
+    },
+    tabs: {
+      flexDirection: 'row',
+      paddingHorizontal: 16,
+      gap: 8,
+      marginBottom: 8,
+    },
+    tab: {
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+    },
+    tabActive: {
+      backgroundColor: theme.surface,
+      borderColor: theme.accent,
+    },
+    tabText: {
+      color: theme.muted,
+      fontSize: 12,
+    },
+    tabTextActive: {
+      color: theme.text,
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    empty: {
+      color: theme.text,
+      fontSize: 15,
+    },
+    hint: {
+      color: theme.muted,
+      fontSize: 12,
+      marginTop: 8,
+    },
+    footerHint: {
+      color: theme.muted,
+      fontSize: 11,
+      textAlign: 'center',
+      paddingVertical: 16,
+    },
+  });
 
 export default LibraryScreen;

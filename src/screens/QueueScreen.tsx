@@ -1,14 +1,17 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useLayoutEffect, useMemo } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TrackRow } from '../components/TrackRow';
 import type { RootStackParamList } from '../navigation/types';
 import { usePlayerActions, usePlayerState } from '../state/player';
-import { theme } from '../theme';
+import { useTheme } from '../theme';
+import type { Theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Queue'>;
 
 const QueueScreen: React.FC<Props> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { queue, index } = usePlayerState();
   const { jumpTo, clearQueue, removeAt } = usePlayerActions();
 
@@ -28,7 +31,7 @@ const QueueScreen: React.FC<Props> = ({ navigation }) => {
           </Pressable>
         ) : null,
     });
-  }, [clearQueue, navigation, queue.length]);
+  }, [clearQueue, navigation, queue.length, styles]);
 
   const confirmRemove = (at: number, title: string) => {
     Alert.alert('移出队列', `确定把《${title}》从播放队列移除吗？`, [
@@ -69,42 +72,43 @@ const QueueScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.bg,
-  },
-  center: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  empty: {
-    color: theme.text,
-    fontSize: 15,
-  },
-  hint: {
-    color: theme.muted,
-    fontSize: 12,
-    marginTop: 8,
-  },
-  clear: {
-    color: theme.accent,
-    fontSize: 14,
-  },
-  row: {
-    borderLeftWidth: 2,
-    borderLeftColor: 'transparent',
-  },
-  rowActive: {
-    borderLeftColor: theme.accent,
-    backgroundColor: theme.surface,
-  },
-  footerHint: {
-    color: theme.muted,
-    fontSize: 11,
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.bg,
+    },
+    center: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    empty: {
+      color: theme.text,
+      fontSize: 15,
+    },
+    hint: {
+      color: theme.muted,
+      fontSize: 12,
+      marginTop: 8,
+    },
+    clear: {
+      color: theme.accent,
+      fontSize: 14,
+    },
+    row: {
+      borderLeftWidth: 2,
+      borderLeftColor: 'transparent',
+    },
+    rowActive: {
+      borderLeftColor: theme.accent,
+      backgroundColor: theme.surface,
+    },
+    footerHint: {
+      color: theme.muted,
+      fontSize: 11,
+      textAlign: 'center',
+      paddingVertical: 16,
+    },
+  });
 
 export default QueueScreen;

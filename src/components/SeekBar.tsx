@@ -1,7 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
 import type { GestureResponderEvent, PanResponderGestureState } from 'react-native';
-import { theme } from '../theme';
+import { useTheme } from '../theme';
+import type { Theme } from '../theme';
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
@@ -19,6 +20,8 @@ interface Props {
 }
 
 export const SeekBar: React.FC<Props> = ({ position, duration, onSeek }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [width, setWidth] = useState(0);
   const [draft, setDraft] = useState<number | null>(null);
   const widthRef = useRef(0);
@@ -77,7 +80,13 @@ export const SeekBar: React.FC<Props> = ({ position, duration, onSeek }) => {
 
   return (
     <View>
-      <View style={styles.hitArea} onLayout={event => setWidth(event.nativeEvent.layout.width)} {...responder.panHandlers}>
+      <View
+        style={styles.hitArea}
+        onLayout={event => setWidth(event.nativeEvent.layout.width)}
+        accessibilityRole="adjustable"
+        accessibilityLabel="播放进度"
+        accessibilityValue={{ min: 0, max: Math.round(duration), now: Math.round(shown) }}
+        {...responder.panHandlers}>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${ratio * 100}%` }]} />
         </View>
@@ -91,39 +100,40 @@ export const SeekBar: React.FC<Props> = ({ position, duration, onSeek }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  hitArea: {
-    paddingVertical: 14,
-    justifyContent: 'center',
-  },
-  track: {
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: theme.border,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    backgroundColor: theme.accent,
-  },
-  thumb: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginLeft: -5,
-    backgroundColor: theme.accent,
-  },
-  thumbActive: {
-    transform: [{ scale: 1.4 }],
-  },
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  time: {
-    color: theme.muted,
-    fontSize: 11,
-    fontVariant: ['tabular-nums'],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    hitArea: {
+      paddingVertical: 14,
+      justifyContent: 'center',
+    },
+    track: {
+      height: 3,
+      borderRadius: 2,
+      backgroundColor: theme.border,
+      overflow: 'hidden',
+    },
+    fill: {
+      height: '100%',
+      backgroundColor: theme.accent,
+    },
+    thumb: {
+      position: 'absolute',
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginLeft: -5,
+      backgroundColor: theme.accent,
+    },
+    thumbActive: {
+      transform: [{ scale: 1.4 }],
+    },
+    timeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    time: {
+      color: theme.muted,
+      fontSize: 11,
+      fontVariant: ['tabular-nums'],
+    },
+  });

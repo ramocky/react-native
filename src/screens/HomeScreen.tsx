@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,7 +9,8 @@ import { TrackRow } from '../components/TrackRow';
 import type { RootStackParamList } from '../navigation/types';
 import { useLibrary } from '../state/library';
 import { usePlayerActions } from '../state/player';
-import { theme } from '../theme';
+import { nextThemeMode, THEME_MODE_LABEL, useTheme, useThemeMode } from '../theme';
+import type { Theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -18,6 +19,9 @@ const PAGE_SIZE = 30;
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { mode, setMode } = useThemeMode();
   const { favorites, recent, history, addHistory, clearHistory } = useLibrary();
   // 只订阅操作，播放进度不会带动首页重渲染
   const player = usePlayerActions();
@@ -35,14 +39,14 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const seqRef = useRef(0);
 
   const load = useCallback(
-    async (query: string, mode: 'initial' | 'refresh' | 'more' = 'initial') => {
+    async (query: string, kind: 'initial' | 'refresh' | 'more' = 'initial') => {
       const word = query.trim();
-      if (mode === 'more' && (!hasMore || loading || loadingMore || refreshing)) {
+      if (kind === 'more' && (!hasMore || loading || loadingMore || refreshing)) {
         return;
       }
-      if (mode === 'refresh') {
+      if (kind === 'refresh') {
         setRefreshing(true);
-      } else if (mode === 'more') {
+      } else if (kind === 'more') {
         setLoadingMore(true);
       } else {
         setLoading(true);
@@ -51,12 +55,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const seq = ++seqRef.current;
       try {
         const provider = getProvider(source);
-        const offset = mode === 'more' ? pageRef.current * PAGE_SIZE : 0;
+        const offset = kind === 'more' ? pageRef.current * PAGE_SIZE : 0;
         const result = word ? await provider.search(word, PAGE_SIZE, offset) : await provider.trending(PAGE_SIZE, offset);
         if (seq !== seqRef.current) {
           return;
         }
-        if (mode === 'more') {
+        if (kind === 'more') {
           setTracks(prev => {
             const seen = new Set(prev.map(item => `${item.source}-${item.id}`));
             return [...prev, ...result.filter(item => !seen.has(`${item.source}-${item.id}`))];
@@ -67,14 +71,14 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           pageRef.current = 1;
         }
         setHasMore(result.length >= PAGE_SIZE);
-        if (word && mode !== 'more') {
+        if (word && kind !== 'more') {
           addHistory(word);
         }
       } catch (err) {
         if (seq !== seqRef.current) {
           return;
         }
-        if (mode !== 'more') {
+        if (kind !== 'more') {
           setTracks([]);
         }
         setError(err instanceof Error ? err.message : '加载失败');
@@ -106,13 +110,22 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.header}>
         <Text style={styles.brand}>Ramocky Music</Text>
-        <Pressable
-          onPress={() => navigation.navigate('Library')}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={`我的收藏，共 ${favorites.length} 首`}>
-          <Text style={styles.link}>收藏 {favorites.length}</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => setMode(nextThemeMode(mode))}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`主题：${THEME_MODE_LABEL[mode]}，点击切换`}>
+            <Text style={styles.themeToggle}>{THEME_MODE_LABEL[mode]}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => navigation.navigate('Library')}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`我的收藏，共 ${favorites.length} 首`}>
+            <Text style={styles.link}>收藏 {favorites.length}</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.sources}>
@@ -221,152 +234,162 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  brand: {
-    color: theme.text,
-    fontSize: 20,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
-  link: {
-    color: theme.accent,
-    fontSize: 13,
-  },
-  sources: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 12,
-  },
-  pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.border,
-  },
-  pillActive: {
-    backgroundColor: theme.surface,
-    borderColor: theme.accent,
-  },
-  pillText: {
-    color: theme.muted,
-    fontSize: 12,
-  },
-  pillTextActive: {
-    color: theme.text,
-  },
-  input: {
-    marginHorizontal: 16,
-    marginBottom: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: theme.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.border,
-    color: theme.text,
-    fontSize: 14,
-  },
-  historyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 8,
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: theme.surface,
-  },
-  chipText: {
-    color: theme.muted,
-    fontSize: 11,
-  },
-  clear: {
-    color: theme.muted,
-    fontSize: 11,
-    textDecorationLine: 'underline',
-  },
-  recentBlock: {
-    marginBottom: 8,
-  },
-  section: {
-    color: theme.muted,
-    fontSize: 11,
-    letterSpacing: 1,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  recentRow: {
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  recentCard: {
-    width: 84,
-  },
-  recentCover: {
-    width: 84,
-    height: 84,
-    borderRadius: 8,
-    backgroundColor: theme.surface,
-  },
-  coverFallback: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.border,
-  },
-  recentTitle: {
-    color: theme.muted,
-    fontSize: 11,
-    marginTop: 6,
-  },
-  state: {
-    marginTop: 32,
-    alignItems: 'center',
-  },
-  error: {
-    color: theme.danger,
-    fontSize: 13,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
-  retry: {
-    color: theme.accent,
-    fontSize: 12,
-    marginTop: 8,
-  },
-  empty: {
-    color: theme.text,
-    fontSize: 14,
-  },
-  emptyHint: {
-    color: theme.muted,
-    fontSize: 12,
-    marginTop: 8,
-  },
-  footer: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  footerText: {
-    color: theme.muted,
-    fontSize: 11,
-    textAlign: 'center',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.bg,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      marginBottom: 16,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
+    },
+    brand: {
+      color: theme.text,
+      fontSize: 20,
+      fontWeight: '600',
+      letterSpacing: 1,
+    },
+    link: {
+      color: theme.accent,
+      fontSize: 13,
+    },
+    themeToggle: {
+      color: theme.muted,
+      fontSize: 12,
+    },
+    sources: {
+      flexDirection: 'row',
+      paddingHorizontal: 16,
+      gap: 8,
+      marginBottom: 12,
+    },
+    pill: {
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 999,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+    },
+    pillActive: {
+      backgroundColor: theme.surface,
+      borderColor: theme.accent,
+    },
+    pillText: {
+      color: theme.muted,
+      fontSize: 12,
+    },
+    pillTextActive: {
+      color: theme.text,
+    },
+    input: {
+      marginHorizontal: 16,
+      marginBottom: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 8,
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      color: theme.text,
+      fontSize: 14,
+    },
+    historyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      paddingHorizontal: 16,
+      gap: 8,
+      marginBottom: 8,
+    },
+    chip: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 6,
+      backgroundColor: theme.surface,
+    },
+    chipText: {
+      color: theme.muted,
+      fontSize: 11,
+    },
+    clear: {
+      color: theme.muted,
+      fontSize: 11,
+      textDecorationLine: 'underline',
+    },
+    recentBlock: {
+      marginBottom: 8,
+    },
+    section: {
+      color: theme.muted,
+      fontSize: 11,
+      letterSpacing: 1,
+      paddingHorizontal: 16,
+      marginBottom: 8,
+    },
+    recentRow: {
+      paddingHorizontal: 16,
+      gap: 12,
+    },
+    recentCard: {
+      width: 84,
+    },
+    recentCover: {
+      width: 84,
+      height: 84,
+      borderRadius: 8,
+      backgroundColor: theme.surface,
+    },
+    coverFallback: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+    },
+    recentTitle: {
+      color: theme.muted,
+      fontSize: 11,
+      marginTop: 6,
+    },
+    state: {
+      marginTop: 32,
+      alignItems: 'center',
+    },
+    error: {
+      color: theme.danger,
+      fontSize: 13,
+      textAlign: 'center',
+      paddingHorizontal: 32,
+    },
+    retry: {
+      color: theme.accent,
+      fontSize: 12,
+      marginTop: 8,
+    },
+    empty: {
+      color: theme.text,
+      fontSize: 14,
+    },
+    emptyHint: {
+      color: theme.muted,
+      fontSize: 12,
+      marginTop: 8,
+    },
+    footer: {
+      paddingVertical: 16,
+      alignItems: 'center',
+    },
+    footerText: {
+      color: theme.muted,
+      fontSize: 11,
+      textAlign: 'center',
+    },
+  });
 
 export default HomeScreen;

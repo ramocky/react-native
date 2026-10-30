@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Track } from '../api/music/types';
-import { theme } from '../theme';
+import { useTheme } from '../theme';
+import type { Theme } from '../theme';
 
 const formatDuration = (seconds: number): string => {
   if (!seconds || seconds < 0) {
@@ -19,6 +20,8 @@ interface Props {
 }
 
 export const TrackRow: React.FC<Props> = ({ track, onPress, onLongPress }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   // 封面 URL 会过期，加载失败时退回占位块，避免出现空白方块
   const [artworkBroken, setArtworkBroken] = useState(false);
   const showArtwork = Boolean(track.artwork) && !artworkBroken;
@@ -49,43 +52,44 @@ export const TrackRow: React.FC<Props> = ({ track, onPress, onLongPress }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  pressed: {
-    backgroundColor: theme.surface,
-  },
-  cover: {
-    width: 48,
-    height: 48,
-    borderRadius: 6,
-    backgroundColor: theme.surface,
-  },
-  coverFallback: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.border,
-  },
-  meta: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  title: {
-    color: theme.text,
-    fontSize: 15,
-  },
-  artist: {
-    color: theme.muted,
-    fontSize: 12,
-    marginTop: 3,
-  },
-  duration: {
-    color: theme.muted,
-    fontSize: 12,
-    marginLeft: 12,
-    fontVariant: ['tabular-nums'],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    pressed: {
+      backgroundColor: theme.surface,
+    },
+    cover: {
+      width: 48,
+      height: 48,
+      borderRadius: 6,
+      backgroundColor: theme.surface,
+    },
+    coverFallback: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+    },
+    meta: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    title: {
+      color: theme.text,
+      fontSize: 15,
+    },
+    artist: {
+      color: theme.muted,
+      fontSize: 12,
+      marginTop: 3,
+    },
+    duration: {
+      color: theme.muted,
+      fontSize: 12,
+      marginLeft: 12,
+      fontVariant: ['tabular-nums'],
+    },
+  });

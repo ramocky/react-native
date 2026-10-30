@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SeekBar } from '../components/SeekBar';
@@ -6,7 +6,8 @@ import { ClockIcon, HeartIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, ShareIco
 import type { RootStackParamList } from '../navigation/types';
 import { useLibrary } from '../state/library';
 import { usePlayer } from '../state/player';
-import { theme } from '../theme';
+import { useTheme } from '../theme';
+import type { Theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
@@ -27,6 +28,8 @@ const formatCountdown = (seconds: number): string => {
 };
 
 const PlayerScreen: React.FC<Props> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const player = usePlayer();
   const { isFavorite, toggleFavorite } = useLibrary();
   const [sleepStep, setSleepStep] = useState(0);
@@ -187,7 +190,7 @@ const PlayerScreen: React.FC<Props> = ({ navigation }) => {
 
         <Pressable onPress={share} hitSlop={8} style={styles.action} accessibilityRole="button" accessibilityLabel="分享">
           <View style={styles.actionRow}>
-            <ShareIcon />
+            <ShareIcon color={theme.muted} />
             <Text style={styles.actionText}>分享</Text>
           </View>
         </Pressable>
@@ -198,125 +201,126 @@ const PlayerScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.bg,
-    alignItems: 'center',
-    paddingHorizontal: 28,
-    paddingTop: 24,
-  },
-  center: {
-    justifyContent: 'center',
-  },
-  empty: {
-    color: theme.muted,
-    fontSize: 14,
-  },
-  cover: {
-    width: 260,
-    height: 260,
-    borderRadius: 12,
-    backgroundColor: theme.surface,
-  },
-  coverFallback: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.border,
-  },
-  title: {
-    color: theme.text,
-    fontSize: 20,
-    fontWeight: '600',
-    marginTop: 24,
-    textAlign: 'center',
-  },
-  artist: {
-    color: theme.muted,
-    fontSize: 13,
-    marginTop: 8,
-  },
-  seekWrap: {
-    width: '100%',
-    marginTop: 20,
-  },
-  errorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 8,
-  },
-  error: {
-    color: theme.danger,
-    fontSize: 12,
-  },
-  retry: {
-    color: theme.accent,
-    fontSize: 12,
-    textDecorationLine: 'underline',
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 18,
-    paddingHorizontal: 4,
-  },
-  side: {
-    width: 76,
-    alignItems: 'center',
-  },
-  sideText: {
-    color: theme.muted,
-    fontSize: 11,
-  },
-  transport: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 24,
-    paddingHorizontal: 4,
-  },
-  action: {
-    paddingVertical: 6,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  actionText: {
-    color: theme.muted,
-    fontSize: 12,
-    fontVariant: ['tabular-nums'],
-  },
-  actionActive: {
-    color: theme.accent,
-  },
-  source: {
-    color: theme.muted,
-    fontSize: 11,
-    marginTop: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.bg,
+      alignItems: 'center',
+      paddingHorizontal: 28,
+      paddingTop: 24,
+    },
+    center: {
+      justifyContent: 'center',
+    },
+    empty: {
+      color: theme.muted,
+      fontSize: 14,
+    },
+    cover: {
+      width: 260,
+      height: 260,
+      borderRadius: 12,
+      backgroundColor: theme.surface,
+    },
+    coverFallback: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+    },
+    title: {
+      color: theme.text,
+      fontSize: 20,
+      fontWeight: '600',
+      marginTop: 24,
+      textAlign: 'center',
+    },
+    artist: {
+      color: theme.muted,
+      fontSize: 13,
+      marginTop: 8,
+    },
+    seekWrap: {
+      width: '100%',
+      marginTop: 20,
+    },
+    errorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 8,
+    },
+    error: {
+      color: theme.danger,
+      fontSize: 12,
+    },
+    retry: {
+      color: theme.accent,
+      fontSize: 12,
+      textDecorationLine: 'underline',
+    },
+    controls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      width: '100%',
+      marginTop: 18,
+      paddingHorizontal: 4,
+    },
+    side: {
+      width: 76,
+      alignItems: 'center',
+    },
+    sideText: {
+      color: theme.muted,
+      fontSize: 11,
+    },
+    transport: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    playButton: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      width: '100%',
+      marginTop: 24,
+      paddingHorizontal: 4,
+    },
+    action: {
+      paddingVertical: 6,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    actionText: {
+      color: theme.muted,
+      fontSize: 12,
+      fontVariant: ['tabular-nums'],
+    },
+    actionActive: {
+      color: theme.accent,
+    },
+    source: {
+      color: theme.muted,
+      fontSize: 11,
+      marginTop: 16,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+  });
 
 export default PlayerScreen;

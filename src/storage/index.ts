@@ -25,4 +25,5 @@ export const STORAGE_KEYS = {
   favorites: 'library:favorites',
   recent: 'library:recent',
   searchHistory: 'search:history',
+  themeMode: 'settings:theme-mode',
 } as const;
