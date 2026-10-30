@@ -1,4 +1,4 @@
-package com.ramockymusic
+package com.ramocky.music
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

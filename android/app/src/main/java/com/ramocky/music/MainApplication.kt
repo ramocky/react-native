@@ -1,4 +1,4 @@
-package com.ramockymusic
+package com.ramocky.music
 
 import android.app.Application
 import com.facebook.react.PackageList

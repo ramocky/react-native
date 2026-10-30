@@ -1,7 +1,6 @@
-import type { Track } from '../api/music/types';
-
 export type RootStackParamList = {
   Home: undefined;
-  Player: { track: Track };
+  Player: undefined;
+  Queue: undefined;
   Library: undefined;
 };

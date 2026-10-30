@@ -4,12 +4,14 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TrackRow } from '../components/TrackRow';
 import type { RootStackParamList } from '../navigation/types';
 import { useLibrary } from '../state/library';
+import { usePlayer } from '../state/player';
 import { theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Library'>;
 
 const LibraryScreen: React.FC<Props> = ({ navigation }) => {
   const { favorites } = useLibrary();
+  const player = usePlayer();
 
   if (favorites.length === 0) {
     return (
@@ -25,7 +27,15 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
       <FlatList
         data={favorites}
         keyExtractor={item => `${item.source}-${item.id}`}
-        renderItem={({ item }) => <TrackRow track={item} onPress={() => navigation.navigate('Player', { track: item })} />}
+        renderItem={({ item }) => (
+          <TrackRow
+            track={item}
+            onPress={() => {
+              player.play(item, favorites);
+              navigation.navigate('Player');
+            }}
+          />
+        )}
       />
     </View>
   );

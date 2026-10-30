@@ -1,80 +1,83 @@
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import Video from 'react-native-video';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SeekBar } from '../components/SeekBar';
 import type { RootStackParamList } from '../navigation/types';
 import { useLibrary } from '../state/library';
+import { usePlayer } from '../state/player';
 import { theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
-const formatTime = (seconds: number): string => {
-  const safe = Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
-  const m = Math.floor(safe / 60);
-  const s = Math.floor(safe % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
+const REPEAT_LABEL: Record<string, string> = {
+  off: '顺序',
+  all: '列表循环',
+  one: '单曲循环',
 };
 
-const PlayerScreen: React.FC<Props> = ({ route }) => {
-  const { track } = route.params;
+const PlayerScreen: React.FC<Props> = ({ navigation }) => {
+  const player = usePlayer();
   const { isFavorite, toggleFavorite } = useLibrary();
-  const [playing, setPlaying] = useState(true);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(track.duration);
-  const [failed, setFailed] = useState('');
+  const { current } = player;
 
-  const onProgress = useCallback((event: { currentTime: number }) => {
-    setPosition(event.currentTime);
-  }, []);
+  if (!current) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={styles.empty}>还没有播放中的歌曲</Text>
+      </View>
+    );
+  }
 
-  const progress = duration > 0 ? Math.min(position / duration, 1) : 0;
-  const favorite = isFavorite(track.id);
+  const favorite = isFavorite(current);
 
   return (
     <View style={styles.container}>
-      <Video
-        source={{ uri: track.streamUrl }}
-        paused={!playing}
-        onLoad={(event: { duration: number }) => setDuration(event.duration || track.duration)}
-        onProgress={onProgress}
-        onEnd={() => {
-          setPlaying(false);
-          setPosition(0);
-        }}
-        onError={() => setFailed('音频加载失败，请换一首试试')}
-        style={styles.hiddenPlayer}
-        playInBackground
-      />
-
-      {track.artwork ? <Image source={{ uri: track.artwork }} style={styles.cover} /> : <View style={[styles.cover, styles.coverFallback]} />}
+      {current.artwork ? (
+        <Image source={{ uri: current.artwork }} style={styles.cover} />
+      ) : (
+        <View style={[styles.cover, styles.coverFallback]} />
+      )}
 
       <Text style={styles.title} numberOfLines={2}>
-        {track.title}
+        {current.title}
       </Text>
       <Text style={styles.artist} numberOfLines={1}>
-        {track.artist}
+        {current.artist}
       </Text>
 
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-      </View>
-      <View style={styles.timeRow}>
-        <Text style={styles.time}>{formatTime(position)}</Text>
-        <Text style={styles.time}>{formatTime(duration)}</Text>
+      <View style={styles.seekWrap}>
+        <SeekBar position={player.position} duration={player.duration} onSeek={player.seek} />
       </View>
 
-      {failed ? <Text style={styles.error}>{failed}</Text> : null}
+      {player.failed ? <Text style={styles.error}>音频加载失败，请换一首试试</Text> : null}
 
       <View style={styles.controls}>
-        <Pressable onPress={() => toggleFavorite(track)} hitSlop={10}>
-          <Text style={[styles.sideButton, favorite && styles.sideButtonActive]}>{favorite ? '♥ 已收藏' : '♡ 收藏'}</Text>
+        <Pressable onPress={player.cycleRepeat} hitSlop={10} style={styles.side}>
+          <Text style={styles.sideText}>{REPEAT_LABEL[player.repeat]}</Text>
         </Pressable>
 
-        <Pressable onPress={() => setPlaying(prev => !prev)} style={styles.playButton}>
-          <Text style={styles.playIcon}>{playing ? '❚❚' : '▶'}</Text>
+        <Pressable onPress={player.prev} hitSlop={10} style={styles.transport}>
+          <Text style={styles.transportIcon}>⏮</Text>
         </Pressable>
 
-        <Text style={styles.source}>{track.source}</Text>
+        <Pressable onPress={player.toggle} style={styles.playButton}>
+          <Text style={styles.playIcon}>{player.playing ? '❚❚' : '▶'}</Text>
+        </Pressable>
+
+        <Pressable onPress={player.next} hitSlop={10} style={styles.transport}>
+          <Text style={styles.transportIcon}>⏭</Text>
+        </Pressable>
+
+        <Pressable onPress={() => navigation.navigate('Queue')} hitSlop={10} style={styles.side}>
+          <Text style={styles.sideText}>队列 {player.queue.length}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.bottomRow}>
+        <Pressable onPress={() => toggleFavorite(current)} hitSlop={10}>
+          <Text style={[styles.favorite, favorite && styles.favoriteActive]}>{favorite ? '♥ 已收藏' : '♡ 收藏'}</Text>
+        </Pressable>
+        <Text style={styles.source}>{current.source}</Text>
       </View>
     </View>
   );
@@ -85,13 +88,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.bg,
     alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 32,
+    paddingHorizontal: 28,
+    paddingTop: 24,
   },
-  hiddenPlayer: {
-    width: 1,
-    height: 1,
-    opacity: 0,
+  center: {
+    justifyContent: 'center',
+  },
+  empty: {
+    color: theme.muted,
+    fontSize: 14,
   },
   cover: {
     width: 260,
@@ -107,7 +112,7 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontSize: 20,
     fontWeight: '600',
-    marginTop: 28,
+    marginTop: 24,
     textAlign: 'center',
   },
   artist: {
@@ -115,48 +120,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 8,
   },
-  progressTrack: {
+  seekWrap: {
     width: '100%',
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: theme.border,
-    marginTop: 32,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: theme.accent,
-  },
-  timeRow: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  time: {
-    color: theme.muted,
-    fontSize: 11,
-    fontVariant: ['tabular-nums'],
+    marginTop: 20,
   },
   error: {
     color: theme.danger,
     fontSize: 12,
-    marginTop: 16,
+    marginTop: 8,
   },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: 36,
+    marginTop: 18,
+    paddingHorizontal: 4,
   },
-  sideButton: {
+  side: {
+    width: 76,
+    alignItems: 'center',
+  },
+  sideText: {
     color: theme.muted,
-    fontSize: 13,
-    width: 80,
+    fontSize: 11,
   },
-  sideButtonActive: {
-    color: theme.accent,
+  transport: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transportIcon: {
+    color: theme.text,
+    fontSize: 20,
   },
   playButton: {
     width: 64,
@@ -172,11 +169,24 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontSize: 20,
   },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 24,
+    paddingHorizontal: 4,
+  },
+  favorite: {
+    color: theme.muted,
+    fontSize: 13,
+  },
+  favoriteActive: {
+    color: theme.accent,
+  },
   source: {
     color: theme.muted,
     fontSize: 11,
-    width: 80,
-    textAlign: 'right',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
