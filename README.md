@@ -23,6 +23,14 @@
 
 新增一个源只需实现 `MusicProvider` 并在 `src/api/music/index.ts` 的 `providers` 中注册。
 
+## 功能
+
+- 搜索与热门，上滑分页、下拉刷新
+- 全局播放器：切页不中断，上一首 / 下一首 / 列表循环 / 单曲循环
+- 可拖动进度条、倍速（0.75x ~ 2x）、定时关闭（15 / 30 / 60 分钟）、系统分享
+- 播放队列页：点选切歌、一键清空
+- 收藏、最近播放（各 30 条）、搜索历史（10 条）落地到 AsyncStorage
+
 ## 本地运行
 
 ```bash
@@ -63,15 +71,15 @@ CI 在每次推送 `master` / `feat/rn-088-rewrite`、以及打 `v*` tag 时自�
 ```
 src/
 ├── api/music/      # 音乐源抽象与实现
-├── components/     # TrackRow 等展示组件
+├── components/     # TrackRow、SeekBar、Skeleton 等展示组件
 ├── navigation/     # 路由参数类型
-├── screens/        # Home / Player / Library
-├── state/          # 收藏状态（内存态，未做持久化）
+├── screens/        # Home / Player / Queue / Library
+├── state/          # 全局播放器与收藏/历史状态
+├── storage/        # AsyncStorage 读写封装
 └── theme.ts        # 配色
 ```
 
 ## 已知限制
 
-- 收藏仅存于内存，重启 App 会丢失
 - iTunes 源只有 30 秒试听
 - iOS 侧未验证构建
