@@ -194,7 +194,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <ActivityIndicator style={styles.footer} color={theme.muted} />
             ) : !hasMore && tracks.length > 0 ? (
               <Text style={[styles.footer, styles.footerText]}>已经到底了</Text>
-            ) : null
+            ) : undefined
           }
         />
       ) : null}
