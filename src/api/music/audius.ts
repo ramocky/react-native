@@ -34,7 +34,7 @@ const request = async (path: string): Promise<AudiusApiTrack[]> => {
 export const audiusProvider: MusicProvider = {
   id: 'audius',
   label: 'Audius',
-  trending: async (limit = 20) => (await request(`/v1/tracks/trending?limit=${limit}`)).map(toTrack),
-  search: async (query, limit = 20) =>
-    (await request(`/v1/tracks/search?query=${encodeURIComponent(query)}&limit=${limit}`)).map(toTrack),
+  trending: async (limit = 20, offset = 0) => (await request(`/v1/tracks/trending?limit=${limit}&offset=${offset}`)).map(toTrack),
+  search: async (query, limit = 20, offset = 0) =>
+    (await request(`/v1/tracks/search?query=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`)).map(toTrack),
 };

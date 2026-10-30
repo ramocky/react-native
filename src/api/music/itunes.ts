@@ -23,8 +23,8 @@ const toTrack = (raw: ItunesApiTrack): Track => ({
   source: 'itunes',
 });
 
-const search = async (term: string, limit: number): Promise<Track[]> => {
-  const url = `${BASE}/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}`;
+const search = async (term: string, limit: number, offset = 0): Promise<Track[]> => {
+  const url = `${BASE}/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}&offset=${offset}`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`iTunes 请求失败：${res.status}`);
@@ -36,6 +36,6 @@ const search = async (term: string, limit: number): Promise<Track[]> => {
 export const itunesProvider: MusicProvider = {
   id: 'itunes',
   label: 'iTunes（30 秒试听）',
-  trending: async (limit = 20) => search(FALLBACK_TERM, limit),
-  search: (query, limit = 20) => search(query, limit),
+  trending: async (limit = 20, offset = 0) => search(FALLBACK_TERM, limit, offset),
+  search: (query, limit = 20, offset = 0) => search(query, limit, offset),
 };

@@ -22,6 +22,6 @@ export interface MusicProvider {
   id: TrackSource;
   label: string;
   /** 推荐/热门；无此概念的源可用固定关键词兜底 */
-  trending(limit?: number): Promise<Track[]>;
-  search(query: string, limit?: number): Promise<Track[]>;
+  trending(limit?: number, offset?: number): Promise<Track[]>;
+  search(query: string, limit?: number, offset?: number): Promise<Track[]>;
 }

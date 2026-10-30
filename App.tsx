@@ -30,7 +30,8 @@ const App: React.FC = () => (
   <SafeAreaProvider>
     <LibraryProvider>
       <PlayerProvider>
-        <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
+        {/* RN 0.88 起状态栏强制 edge-to-edge，backgroundColor 已移除 */}
+        <StatusBar barStyle="light-content" />
         <NavigationContainer theme={navTheme}>
           <Stack.Navigator
             screenOptions={{
