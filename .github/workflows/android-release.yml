@@ -34,8 +34,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      # runner 已预装 Android SDK；setup-android@v3 在新镜像上会因找不到 legacy tools 包而失败
+      - name: Accept Android SDK licenses
+        run: |
+          SDKMGR="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
+          echo "ANDROID_HOME=$ANDROID_HOME"
 
       - name: Setup Gradle cache
         uses: gradle/actions/setup-gradle@v4
