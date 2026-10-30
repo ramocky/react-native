@@ -30,7 +30,7 @@ class SceneDelegate: RCTDefaultReactNativeFactoryDelegate, UIWindowSceneDelegate
     #endif
     
     reactNativeFactory?.startReactNative(
-      withModuleName: "HelloWorld",
+      withModuleName: "RamockyMusic",
       in: window,
       connectionOptions: connectionOptions
     )
