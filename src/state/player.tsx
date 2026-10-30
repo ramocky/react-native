@@ -24,6 +24,7 @@ interface PlayerValue {
   seek: (seconds: number) => void;
   cycleRepeat: () => void;
   setRate: (rate: number) => void;
+  clearQueue: () => void;
 }
 
 const PlayerContext = createContext<PlayerValue | null>(null);
@@ -134,6 +135,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const setRate = useCallback((value: number) => setRateState(value), []);
 
+  const clearQueue = useCallback(() => {
+    setPlaying(false);
+    setQueue([]);
+    setIndex(-1);
+    setPosition(0);
+    setDuration(0);
+    setFailed(false);
+  }, []);
+
   const handleEnd = useCallback(() => {
     if (repeat === 'one') {
       videoRef.current?.seek(0);
@@ -162,8 +172,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       seek,
       cycleRepeat,
       setRate,
+      clearQueue,
     }),
-    [queue, index, current, playing, position, duration, repeat, rate, failed, play, jumpTo, toggle, next, prev, seek, cycleRepeat, setRate],
+    [queue, index, current, playing, position, duration, repeat, rate, failed, play, jumpTo, toggle, next, prev, seek, cycleRepeat, setRate, clearQueue],
   );
 
   return (

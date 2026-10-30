@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Image, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SeekBar } from '../components/SeekBar';
 import type { RootStackParamList } from '../navigation/types';
@@ -15,10 +15,44 @@ const REPEAT_LABEL: Record<string, string> = {
   one: '单曲循环',
 };
 
+const RATES = [0.75, 1, 1.25, 1.5, 2];
+/** 定时关闭的可选分钟数，0 表示不开启 */
+const SLEEP_MINUTES = [0, 15, 30, 60];
+
+const formatCountdown = (seconds: number): string => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
 const PlayerScreen: React.FC<Props> = ({ navigation }) => {
   const player = usePlayer();
   const { isFavorite, toggleFavorite } = useLibrary();
+  const [sleepStep, setSleepStep] = useState(0);
+  const [remaining, setRemaining] = useState(0);
   const { current } = player;
+
+  useEffect(() => {
+    setRemaining(SLEEP_MINUTES[sleepStep] * 60);
+  }, [sleepStep]);
+
+  useEffect(() => {
+    if (SLEEP_MINUTES[sleepStep] === 0) {
+      return;
+    }
+    if (remaining <= 0) {
+      // 倒计时结束：关闭定时并暂停播放
+      setSleepStep(0);
+      if (player.playing) {
+        player.toggle();
+      }
+      return;
+    }
+    const timer = setTimeout(() => setRemaining(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+    // player 每秒都会变化，只关心 playing 的即时值
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remaining, sleepStep]);
 
   if (!current) {
     return (
@@ -29,6 +63,19 @@ const PlayerScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   const favorite = isFavorite(current);
+
+  const cycleRate = () => {
+    const next = (RATES.indexOf(player.rate) + 1) % RATES.length;
+    player.setRate(RATES[next]);
+  };
+
+  const cycleSleep = () => setSleepStep(prev => (prev + 1) % SLEEP_MINUTES.length);
+
+  const share = () => {
+    void Share.share({
+      message: `正在听 ${current.title} - ${current.artist}\n${current.streamUrl}`,
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -73,12 +120,24 @@ const PlayerScreen: React.FC<Props> = ({ navigation }) => {
         </Pressable>
       </View>
 
-      <View style={styles.bottomRow}>
-        <Pressable onPress={() => toggleFavorite(current)} hitSlop={10}>
-          <Text style={[styles.favorite, favorite && styles.favoriteActive]}>{favorite ? '♥ 已收藏' : '♡ 收藏'}</Text>
+      <View style={styles.actions}>
+        <Pressable onPress={() => toggleFavorite(current)} hitSlop={8} style={styles.action}>
+          <Text style={[styles.actionText, favorite && styles.actionActive]}>{favorite ? '♥ 已收藏' : '♡ 收藏'}</Text>
         </Pressable>
-        <Text style={styles.source}>{current.source}</Text>
+        <Pressable onPress={cycleRate} hitSlop={8} style={styles.action}>
+          <Text style={[styles.actionText, player.rate !== 1 && styles.actionActive]}>{player.rate}x</Text>
+        </Pressable>
+        <Pressable onPress={cycleSleep} hitSlop={8} style={styles.action}>
+          <Text style={[styles.actionText, sleepStep > 0 && styles.actionActive]}>
+            {sleepStep > 0 ? `定时 ${formatCountdown(remaining)}` : '定时'}
+          </Text>
+        </Pressable>
+        <Pressable onPress={share} hitSlop={8} style={styles.action}>
+          <Text style={styles.actionText}>分享</Text>
+        </Pressable>
       </View>
+
+      <Text style={styles.source}>{current.source}</Text>
     </View>
   );
 };
@@ -169,7 +228,7 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontSize: 20,
   },
-  bottomRow: {
+  actions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -177,16 +236,21 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 4,
   },
-  favorite: {
-    color: theme.muted,
-    fontSize: 13,
+  action: {
+    paddingVertical: 6,
   },
-  favoriteActive: {
+  actionText: {
+    color: theme.muted,
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
+  },
+  actionActive: {
     color: theme.accent,
   },
   source: {
     color: theme.muted,
     fontSize: 11,
+    marginTop: 16,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
