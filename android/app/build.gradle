@@ -62,6 +62,19 @@ def enableProguardInReleaseBuilds = false
 // CI 注入 ANDROID_KEYSTORE_PATH 时使用正式签名，否则回退 debug 签名（APK 仍可直接安装）
 def hasReleaseKeystore = System.getenv("ANDROID_KEYSTORE_PATH") != null
 
+// 版本号：优先取 -P 参数，其次按 GitHub Actions 自带环境变量推导，本地构建回退到默认值。
+// tag 构建取 tag 名（v1.2.0 -> 1.2.0），分支构建用 0.0.<构建序号>，versionCode 用构建序号。
+def ciRunNumber = System.getenv("GITHUB_RUN_NUMBER")
+def ciRef = System.getenv("GITHUB_REF")
+def ciRefName = System.getenv("GITHUB_REF_NAME")
+def isTagBuild = ciRef != null && ciRef.startsWith("refs/tags/v") && ciRefName != null
+def projectVersionCode = project.hasProperty("versionCode")
+        ? project.property("versionCode").toInteger()
+        : (ciRunNumber != null ? ciRunNumber.toInteger() : 1)
+def projectVersionName = project.hasProperty("versionName")
+        ? project.property("versionName").toString()
+        : (isTagBuild ? ciRefName.substring(1) : (ciRunNumber != null ? "0.0.${ciRunNumber}" : "1.0"))
+
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
@@ -85,8 +98,9 @@ android {
         applicationId "com.ramocky.music"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // 版本号由 CI 按构建序号 / tag 注入，本地构建回退到默认值
+        versionCode projectVersionCode
+        versionName projectVersionName
     }
     signingConfigs {
         debug {

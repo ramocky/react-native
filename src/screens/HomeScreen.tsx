@@ -8,7 +8,7 @@ import { TrackRowSkeleton } from '../components/Skeleton';
 import { TrackRow } from '../components/TrackRow';
 import type { RootStackParamList } from '../navigation/types';
 import { useLibrary } from '../state/library';
-import { usePlayer } from '../state/player';
+import { usePlayerActions } from '../state/player';
 import { theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -19,7 +19,8 @@ const PAGE_SIZE = 30;
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { favorites, recent, history, addHistory, clearHistory } = useLibrary();
-  const player = usePlayer();
+  // 只订阅操作，播放进度不会带动首页重渲染
+  const player = usePlayerActions();
   const [source, setSource] = useState<TrackSource>(DEFAULT_SOURCE);
   const [keyword, setKeyword] = useState('');
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -30,6 +31,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [error, setError] = useState('');
   // 已加载页数，翻页游标以它为基准，不随列表内容变化
   const pageRef = useRef(0);
+  // 请求序号：快速切源或连续搜索时，旧请求不允许回填
+  const seqRef = useRef(0);
 
   const load = useCallback(
     async (query: string, mode: 'initial' | 'refresh' | 'more' = 'initial') => {
@@ -45,10 +48,14 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setLoading(true);
       }
       setError('');
+      const seq = ++seqRef.current;
       try {
         const provider = getProvider(source);
         const offset = mode === 'more' ? pageRef.current * PAGE_SIZE : 0;
         const result = word ? await provider.search(word, PAGE_SIZE, offset) : await provider.trending(PAGE_SIZE, offset);
+        if (seq !== seqRef.current) {
+          return;
+        }
         if (mode === 'more') {
           setTracks(prev => {
             const seen = new Set(prev.map(item => `${item.source}-${item.id}`));
@@ -64,6 +71,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           addHistory(word);
         }
       } catch (err) {
+        if (seq !== seqRef.current) {
+          return;
+        }
         if (mode !== 'more') {
           setTracks([]);
         }
@@ -96,14 +106,23 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.header}>
         <Text style={styles.brand}>Ramocky Music</Text>
-        <Pressable onPress={() => navigation.navigate('Library')} hitSlop={8}>
+        <Pressable
+          onPress={() => navigation.navigate('Library')}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`我的收藏，共 ${favorites.length} 首`}>
           <Text style={styles.link}>收藏 {favorites.length}</Text>
         </Pressable>
       </View>
 
       <View style={styles.sources}>
         {(Object.keys(providers) as TrackSource[]).map(id => (
-          <Pressable key={id} onPress={() => setSource(id)} style={[styles.pill, source === id && styles.pillActive]}>
+          <Pressable
+            key={id}
+            onPress={() => setSource(id)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: source === id }}
+            style={[styles.pill, source === id && styles.pillActive]}>
             <Text style={[styles.pillText, source === id && styles.pillTextActive]}>{providers[id].label}</Text>
           </Pressable>
         ))}
@@ -132,7 +151,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.chipText}>{word}</Text>
             </Pressable>
           ))}
-          <Pressable onPress={clearHistory} hitSlop={6}>
+          <Pressable onPress={clearHistory} hitSlop={6} accessibilityRole="button">
             <Text style={styles.clear}>清除</Text>
           </Pressable>
         </View>
@@ -146,7 +165,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <Pressable
                 key={`${item.source}-${item.id}`}
                 style={styles.recentCard}
-                onPress={() => openPlayer(item, [item, ...recent.filter(track => track !== item)])}>
+                onPress={() => openPlayer(item, [item, ...recent.filter(track => track !== item)])}
+                accessibilityRole="button"
+                accessibilityLabel={`继续播放 ${item.title}`}>
                 {item.artwork ? (
                   <Image source={{ uri: item.artwork }} style={styles.recentCover} />
                 ) : (
@@ -161,12 +182,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : null}
 
-      {loading
-        ? SKELETON_ROWS.map(row => <TrackRowSkeleton key={row} />)
-        : null}
+      {loading ? SKELETON_ROWS.map(row => <TrackRowSkeleton key={row} />) : null}
 
       {!loading && error ? (
-        <Pressable style={styles.state} onPress={() => void load(keyword)}>
+        <Pressable style={styles.state} onPress={() => void load(keyword)} accessibilityRole="button">
           <Text style={styles.error}>{error}</Text>
           <Text style={styles.retry}>点击重试</Text>
         </Pressable>

@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from './http';
 import type { MusicProvider, Track } from './types';
 
 const BASE = 'https://itunes.apple.com';
@@ -25,7 +26,7 @@ const toTrack = (raw: ItunesApiTrack): Track => ({
 
 const search = async (term: string, limit: number, offset = 0): Promise<Track[]> => {
   const url = `${BASE}/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}&offset=${offset}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if (!res.ok) {
     throw new Error(`iTunes 请求失败：${res.status}`);
   }

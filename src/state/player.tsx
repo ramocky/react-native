@@ -6,16 +6,8 @@ import { useLibrary } from './library';
 
 export type RepeatMode = 'off' | 'all' | 'one';
 
-interface PlayerValue {
-  queue: Track[];
-  index: number;
-  current: Track | null;
-  playing: boolean;
-  position: number;
-  duration: number;
-  repeat: RepeatMode;
-  rate: number;
-  failed: boolean;
+/** 只暴露操作，引用恒定：列表页订阅它不会因播放进度而变化 */
+interface PlayerActions {
   play: (track: Track, queue?: Track[]) => void;
   jumpTo: (index: number) => void;
   toggle: () => void;
@@ -25,14 +17,38 @@ interface PlayerValue {
   cycleRepeat: () => void;
   setRate: (rate: number) => void;
   clearQueue: () => void;
+  removeAt: (index: number) => void;
+  retry: () => void;
 }
 
-const PlayerContext = createContext<PlayerValue | null>(null);
+/** 播放状态：播放进度每秒变化，只给播放页/队列页订阅 */
+interface PlayerState {
+  queue: Track[];
+  index: number;
+  current: Track | null;
+  playing: boolean;
+  position: number;
+  duration: number;
+  repeat: RepeatMode;
+  rate: number;
+  failed: boolean;
+  reloadToken: number;
+}
+
+export type PlayerValue = PlayerActions & PlayerState;
+
+const ActionsContext = createContext<PlayerActions | null>(null);
+const StateContext = createContext<PlayerState | null>(null);
 
 /** 播放器实例只在内部使用，对外只暴露 seek 需要的最小接口 */
 interface VideoHandle {
   seek: (seconds: number) => void;
 }
+
+/** 单曲连续失败达到该次数后不再自动跳过，避免整个列表被快速刷完 */
+const MAX_AUTO_SKIP = 3;
+
+const trackKey = (track: Track | null): string => (track ? `${track.source}-${track.id}` : '');
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addRecent } = useLibrary();
@@ -45,8 +61,26 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [repeat, setRepeat] = useState<RepeatMode>('all');
   const [rate, setRateState] = useState(1);
   const [failed, setFailed] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const current = index >= 0 && index < queue.length ? queue[index] : null;
+
+  // actions 通过 ref 读取最新状态，这样操作函数的引用可以保持恒定
+  const queueRef = useRef(queue);
+  const indexRef = useRef(index);
+  const repeatRef = useRef(repeat);
+  const positionRef = useRef(position);
+  const durationRef = useRef(duration);
+  const currentRef = useRef(current);
+  const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const failCountRef = useRef<Record<string, number>>({});
+
+  queueRef.current = queue;
+  indexRef.current = index;
+  repeatRef.current = repeat;
+  positionRef.current = position;
+  durationRef.current = duration;
+  currentRef.current = current;
 
   useEffect(() => {
     // 换曲后先按曲目自带时长展示，onLoad 拿到真实时长后再覆盖
@@ -56,9 +90,19 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [current, addRecent]);
 
+  useEffect(
+    () => () => {
+      if (skipTimerRef.current) {
+        clearTimeout(skipTimerRef.current);
+      }
+    },
+    [],
+  );
+
   const play = useCallback((track: Track, list?: Track[]) => {
     const nextQueue = list && list.length > 0 ? list : [track];
     const at = nextQueue.findIndex(item => item.source === track.source && item.id === track.id);
+    failCountRef.current[trackKey(track)] = 0;
     setQueue(nextQueue);
     setIndex(at >= 0 ? at : 0);
     setPosition(0);
@@ -67,70 +111,69 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setPlaying(true);
   }, []);
 
-  const jumpTo = useCallback(
-    (target: number) => {
-      if (target < 0 || target >= queue.length) {
-        return;
-      }
-      setIndex(target);
-      setPosition(0);
-      setFailed(false);
-      setPlaying(true);
-    },
-    [queue.length],
-  );
+  const jumpTo = useCallback((target: number) => {
+    const length = queueRef.current.length;
+    if (target < 0 || target >= length) {
+      return;
+    }
+    const targetTrack = queueRef.current[target];
+    failCountRef.current[trackKey(targetTrack)] = 0;
+    setIndex(target);
+    setPosition(0);
+    setFailed(false);
+    setPlaying(true);
+  }, []);
 
   const next = useCallback(() => {
-    if (queue.length === 0) {
+    const length = queueRef.current.length;
+    if (length === 0) {
       return;
     }
-    if (index + 1 < queue.length) {
-      setIndex(index + 1);
-      setPosition(0);
-      setFailed(false);
-      setPlaying(true);
-      return;
-    }
-    if (repeat === 'all') {
+    if (indexRef.current + 1 < length) {
+      setIndex(indexRef.current + 1);
+    } else if (repeatRef.current === 'all') {
       setIndex(0);
-      setPosition(0);
-      setFailed(false);
-      setPlaying(true);
+    } else {
+      setPlaying(false);
       return;
-    }
-    setPlaying(false);
-  }, [index, queue.length, repeat]);
-
-  const prev = useCallback(() => {
-    if (queue.length === 0) {
-      return;
-    }
-    // 播放超过 3 秒时，「上一首」先回到本曲开头
-    if (position > 3) {
-      videoRef.current?.seek(0);
-      setPosition(0);
-      return;
-    }
-    if (index > 0) {
-      setIndex(index - 1);
-    } else if (repeat === 'all') {
-      setIndex(queue.length - 1);
     }
     setPosition(0);
     setFailed(false);
     setPlaying(true);
-  }, [index, position, queue.length, repeat]);
+  }, []);
 
-  const toggle = useCallback(() => setPlaying(prevState => !prevState), []);
+  const prev = useCallback(() => {
+    const length = queueRef.current.length;
+    if (length === 0) {
+      return;
+    }
+    // 播放超过 3 秒时，「上一首」先回到本曲开头
+    if (positionRef.current > 3) {
+      videoRef.current?.seek(0);
+      setPosition(0);
+      return;
+    }
+    if (indexRef.current > 0) {
+      setIndex(indexRef.current - 1);
+    } else if (repeatRef.current === 'all') {
+      setIndex(length - 1);
+    }
+    setPosition(0);
+    setFailed(false);
+    setPlaying(true);
+  }, []);
+
+  const toggle = useCallback(() => setPlaying(value => !value), []);
 
   const seek = useCallback((seconds: number) => {
-    const target = Math.max(0, Math.min(seconds, duration || seconds));
+    const total = durationRef.current;
+    const target = Math.max(0, total > 0 ? Math.min(seconds, total) : seconds);
     videoRef.current?.seek(target);
     setPosition(target);
-  }, [duration]);
+  }, []);
 
   const cycleRepeat = useCallback(() => {
-    setRepeat(prevState => (prevState === 'off' ? 'all' : prevState === 'all' ? 'one' : 'off'));
+    setRepeat(value => (value === 'off' ? 'all' : value === 'all' ? 'one' : 'off'));
   }, []);
 
   const setRate = useCallback((value: number) => setRateState(value), []);
@@ -144,63 +187,115 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setFailed(false);
   }, []);
 
+  const removeAt = useCallback(
+    (at: number) => {
+      const list = queueRef.current;
+      if (at < 0 || at >= list.length) {
+        return;
+      }
+      const rest = list.filter((_, idx) => idx !== at);
+      if (rest.length === 0) {
+        clearQueue();
+        return;
+      }
+      const active = indexRef.current;
+      setQueue(rest);
+      if (at < active) {
+        // 删的是当前曲之前的，索引整体前移一位
+        setIndex(active - 1);
+        return;
+      }
+      if (at > active) {
+        return;
+      }
+      // 删掉正在播的：从同一位置续播，已在末尾则回落到最后一首
+      setIndex(Math.min(at, rest.length - 1));
+      setPosition(0);
+      setFailed(false);
+      setPlaying(true);
+    },
+    [clearQueue],
+  );
+
+  const retry = useCallback(() => {
+    setFailed(false);
+    setPosition(0);
+    setPlaying(true);
+    setReloadToken(value => value + 1);
+  }, []);
+
+  const nextRef = useRef(next);
+  nextRef.current = next;
+
+  const handleError = useCallback(() => {
+    const track = currentRef.current;
+    const key = trackKey(track);
+    const count = (failCountRef.current[key] ?? 0) + 1;
+    failCountRef.current[key] = count;
+    setFailed(true);
+    if (skipTimerRef.current) {
+      clearTimeout(skipTimerRef.current);
+    }
+    // 单曲循环时不自动跳过，否则会绕开用户的循环意图
+    if (count < MAX_AUTO_SKIP && queueRef.current.length > 1 && repeatRef.current !== 'one') {
+      skipTimerRef.current = setTimeout(() => nextRef.current(), 800);
+      return;
+    }
+    setPlaying(false);
+  }, []);
+
+  const handleLoad = useCallback(
+    (event: { duration: number }) => {
+      failCountRef.current[trackKey(currentRef.current)] = 0;
+      setDuration(event.duration || currentRef.current?.duration || 0);
+      setFailed(false);
+    },
+    [],
+  );
+
   const handleEnd = useCallback(() => {
-    if (repeat === 'one') {
+    if (repeatRef.current === 'one') {
       videoRef.current?.seek(0);
       setPosition(0);
       return;
     }
-    next();
-  }, [next, repeat]);
+    nextRef.current();
+  }, []);
 
-  const value = useMemo(
-    () => ({
-      queue,
-      index,
-      current,
-      playing,
-      position,
-      duration,
-      repeat,
-      rate,
-      failed,
-      play,
-      jumpTo,
-      toggle,
-      next,
-      prev,
-      seek,
-      cycleRepeat,
-      setRate,
-      clearQueue,
-    }),
-    [queue, index, current, playing, position, duration, repeat, rate, failed, play, jumpTo, toggle, next, prev, seek, cycleRepeat, setRate, clearQueue],
+  const actions = useMemo<PlayerActions>(
+    () => ({ play, jumpTo, toggle, next, prev, seek, cycleRepeat, setRate, clearQueue, removeAt, retry }),
+    [play, jumpTo, toggle, next, prev, seek, cycleRepeat, setRate, clearQueue, removeAt, retry],
+  );
+
+  const state = useMemo<PlayerState>(
+    () => ({ queue, index, current, playing, position, duration, repeat, rate, failed, reloadToken }),
+    [queue, index, current, playing, position, duration, repeat, rate, failed, reloadToken],
   );
 
   return (
-    <PlayerContext.Provider value={value}>
-      {children}
-      {current ? (
-        <Video
-          ref={videoRef as never}
-          source={{ uri: current.streamUrl }}
-          paused={!playing}
-          rate={rate}
-          playInBackground
-          onLoad={(event: { duration: number }) => {
-            setDuration(event.duration || current.duration);
-            setFailed(false);
-          }}
-          onProgress={(event: { currentTime: number }) => setPosition(event.currentTime)}
-          onEnd={handleEnd}
-          onError={() => {
-            setFailed(true);
-            setPlaying(false);
-          }}
-          style={styles.hidden}
-        />
-      ) : null}
-    </PlayerContext.Provider>
+    <ActionsContext.Provider value={actions}>
+      <StateContext.Provider value={state}>
+        {children}
+        {current ? (
+          <Video
+            // reloadToken 递增时强制重建实例，用于「重试」重新拉流
+            key={`${trackKey(current)}-${reloadToken}`}
+            ref={videoRef as never}
+            source={{ uri: current.streamUrl }}
+            paused={!playing}
+            rate={rate}
+            playInBackground
+            // 默认 250ms 会让整棵树每秒重渲染 4 次，这里降到 1 秒一次
+            progressUpdateInterval={1000}
+            onLoad={handleLoad}
+            onProgress={(event: { currentTime: number }) => setPosition(event.currentTime)}
+            onEnd={handleEnd}
+            onError={handleError}
+            style={styles.hidden}
+          />
+        ) : null}
+      </StateContext.Provider>
+    </ActionsContext.Provider>
   );
 };
 
@@ -215,10 +310,21 @@ const styles = StyleSheet.create({
   },
 });
 
-export const usePlayer = (): PlayerValue => {
-  const ctx = useContext(PlayerContext);
+export const usePlayerActions = (): PlayerActions => {
+  const ctx = useContext(ActionsContext);
   if (!ctx) {
-    throw new Error('usePlayer 必须在 PlayerProvider 内部使用');
+    throw new Error('usePlayerActions 必须在 PlayerProvider 内部使用');
   }
   return ctx;
 };
+
+export const usePlayerState = (): PlayerState => {
+  const ctx = useContext(StateContext);
+  if (!ctx) {
+    throw new Error('usePlayerState 必须在 PlayerProvider 内部使用');
+  }
+  return ctx;
+};
+
+/** 同时需要状态与操作的页面（播放页）使用；纯操作场景请用 usePlayerActions 避免跟着进度重渲染 */
+export const usePlayer = (): PlayerValue => ({ ...usePlayerActions(), ...usePlayerState() });

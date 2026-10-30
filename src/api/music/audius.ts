@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from './http';
 import type { MusicProvider, Track } from './types';
 
 const BASE = 'https://api.audius.co';
@@ -23,7 +24,7 @@ const toTrack = (raw: AudiusApiTrack): Track => ({
 
 const request = async (path: string): Promise<AudiusApiTrack[]> => {
   const separator = path.includes('?') ? '&' : '?';
-  const res = await fetch(`${BASE}${path}${separator}app_name=${APP_NAME}`);
+  const res = await fetchWithTimeout(`${BASE}${path}${separator}app_name=${APP_NAME}`);
   if (!res.ok) {
     throw new Error(`Audius 请求失败：${res.status}`);
   }
