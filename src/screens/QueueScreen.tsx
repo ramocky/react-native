@@ -1,15 +1,16 @@
 import React, { useLayoutEffect } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TrackRow } from '../components/TrackRow';
 import type { RootStackParamList } from '../navigation/types';
-import { usePlayer } from '../state/player';
+import { usePlayerActions, usePlayerState } from '../state/player';
 import { theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Queue'>;
 
 const QueueScreen: React.FC<Props> = ({ navigation }) => {
-  const { queue, index, jumpTo, clearQueue } = usePlayer();
+  const { queue, index } = usePlayerState();
+  const { jumpTo, clearQueue, removeAt } = usePlayerActions();
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -17,6 +18,8 @@ const QueueScreen: React.FC<Props> = ({ navigation }) => {
         queue.length > 0 ? (
           <Pressable
             hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="清空播放队列"
             onPress={() => {
               clearQueue();
               navigation.goBack();
@@ -26,6 +29,13 @@ const QueueScreen: React.FC<Props> = ({ navigation }) => {
         ) : null,
     });
   }, [clearQueue, navigation, queue.length]);
+
+  const confirmRemove = (at: number, title: string) => {
+    Alert.alert('移出队列', `确定把《${title}》从播放队列移除吗？`, [
+      { text: '取消', style: 'cancel' },
+      { text: '移出', style: 'destructive', onPress: () => removeAt(at) },
+    ]);
+  };
 
   if (queue.length === 0) {
     return (
@@ -49,9 +59,11 @@ const QueueScreen: React.FC<Props> = ({ navigation }) => {
                 jumpTo(at);
                 navigation.navigate('Player');
               }}
+              onLongPress={() => confirmRemove(at, item.title)}
             />
           </View>
         )}
+        ListFooterComponent={<Text style={styles.footerHint}>长按可移出单曲</Text>}
       />
     </View>
   );
@@ -86,6 +98,12 @@ const styles = StyleSheet.create({
   rowActive: {
     borderLeftColor: theme.accent,
     backgroundColor: theme.surface,
+  },
+  footerHint: {
+    color: theme.muted,
+    fontSize: 11,
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });
 
