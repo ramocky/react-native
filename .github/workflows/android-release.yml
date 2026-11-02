@@ -49,7 +49,6 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
-        continue-on-error: true
 
       - name: Restore release keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
