@@ -142,7 +142,7 @@ android {
 
 /**
  * AGP 9 的 VariantOutput 不再提供 outputFileName，无法在配置阶段改名，
- * 因此打包完成后就地重命名，产物形如 ramocky-music-1.3.2-arm64-v8a-release.apk。
+ * 因此打包完成后就地重命名，产物形如 ramocky-music-v1.3.2-arm64-v8a.apk。
  * 用 finalizedBy 挂在 assembleRelease 上，本地与 CI 构建都会生效。
  */
 tasks.register("renameReleaseApks") {
@@ -156,7 +156,7 @@ tasks.register("renameReleaseApks") {
         dir.listFiles().each { f ->
             if (f.isFile() && f.name.startsWith("app-") && f.name.endsWith("-release.apk")) {
                 def abi = f.name.substring(4, f.name.length() - "-release.apk".length())
-                def target = new File(dir, "ramocky-music-${projectVersionName}-${abi}-release.apk")
+                def target = new File(dir, "ramocky-music-v${projectVersionName}-${abi}.apk")
                 if (target.exists()) {
                     target.delete()
                 }
