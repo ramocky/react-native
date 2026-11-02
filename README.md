@@ -36,7 +36,7 @@
 
 ## 真机自测清单
 
-安装 `app-arm64-v8a-release.apk`（或 v7a）后按下列顺序过一遍：
+安装 `ramocky-music-<版本>-arm64-v8a-release.apk`（或 v7a）后按下列顺序过一遍：
 
 | # | 步骤 | 期望 |
 | --- | --- | --- |
@@ -71,8 +71,10 @@ CI 在每次推送 `master` / `feat/rn-088-rewrite`、以及打 `v*` tag 时自�
 
 按 ABI 拆包，产出：
 
-- `app-arm64-v8a-release.apk` — 64 位（V8）
-- `app-armeabi-v7a-release.apk` — 32 位（V7）
+- `ramocky-music-<版本>-arm64-v8a-release.apk` — 64 位（V8）
+- `ramocky-music-<版本>-armeabi-v7a-release.apk` — 32 位（V7）
+
+`<版本>` 与构建时注入的 versionName 一致：tag 构建为 tag 去掉 `v` 前缀（如 `1.3.2`），分支构建为 `0.0.<构建序号>`，本地构建为 `1.0`。
 
 产物在 Actions 的 `ramocky-music-apk` artifact 中；打 tag 时会自动挂到 Release。
 

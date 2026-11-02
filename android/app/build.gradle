@@ -118,7 +118,8 @@ android {
             }
         }
     }
-    // 按 ABI 拆包，产出 app-arm64-v8a-release.apk 与 app-armeabi-v7a-release.apk
+    // 按 ABI 拆包；AGP 9 起不再允许改 outputFileName，
+// 产物名由下方 renameReleaseApks 在打包后补上版本号
     splits {
         abi {
             enable true
@@ -137,6 +138,36 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
+}
+
+/**
+ * AGP 9 的 VariantOutput 不再提供 outputFileName，无法在配置阶段改名，
+ * 因此打包完成后就地重命名，产物形如 ramocky-music-1.3.2-arm64-v8a-release.apk。
+ * 用 finalizedBy 挂在 assembleRelease 上，本地与 CI 构建都会生效。
+ */
+tasks.register("renameReleaseApks") {
+    group = "build"
+    description = "给 release APK 文件名补上版本号"
+    doLast {
+        def dir = layout.buildDirectory.dir("outputs/apk/release").get().asFile
+        if (!dir.exists()) {
+            return
+        }
+        dir.listFiles().each { f ->
+            if (f.isFile() && f.name.startsWith("app-") && f.name.endsWith("-release.apk")) {
+                def abi = f.name.substring(4, f.name.length() - "-release.apk".length())
+                def target = new File(dir, "ramocky-music-${projectVersionName}-${abi}-release.apk")
+                if (target.exists()) {
+                    target.delete()
+                }
+                f.renameTo(target)
+            }
+        }
+    }
+}
+
+tasks.matching { it.name == "assembleRelease" }.configureEach {
+    finalizedBy("renameReleaseApks")
 }
 
 dependencies {
