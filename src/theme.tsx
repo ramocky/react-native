@@ -46,14 +46,17 @@ interface ThemeValue {
 
 const ThemeContext = createContext<ThemeValue>({ theme: darkTheme, mode: 'system', setMode: () => {} });
 
+const isThemeMode = (value: unknown): value is ThemeMode => value === 'system' || value === 'light' || value === 'dark';
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const scheme = useColorScheme();
   const [mode, setModeState] = useState<ThemeMode>('system');
 
   useEffect(() => {
     let alive = true;
+    // 存储可能被写坏，非法值一律回退到跟随系统
     void loadJSON<ThemeMode>(STORAGE_KEYS.themeMode, 'system').then(saved => {
-      if (alive) {
+      if (alive && isThemeMode(saved)) {
         setModeState(saved);
       }
     });

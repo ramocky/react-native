@@ -19,6 +19,8 @@ interface PlayerActions {
   clearQueue: () => void;
   removeAt: (index: number) => void;
   retry: () => void;
+  /** 定时关闭：0 表示关闭，其余为分钟数 */
+  setSleepMinutes: (minutes: number) => void;
 }
 
 /** 播放状态：播放进度每秒变化，只给播放页/队列页订阅 */
@@ -33,6 +35,10 @@ interface PlayerState {
   rate: number;
   failed: boolean;
   reloadToken: number;
+  /** 当前选择的定时关闭分钟数，0 表示未开启 */
+  sleepMinutes: number;
+  /** 定时关闭的到期时间戳（毫秒），null 表示未开启 */
+  sleepDeadline: number | null;
 }
 
 export type PlayerValue = PlayerActions & PlayerState;
@@ -62,6 +68,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [rate, setRateState] = useState(1);
   const [failed, setFailed] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const [sleepMinutes, setSleepMinutesState] = useState(0);
+  const [sleepDeadline, setSleepDeadline] = useState<number | null>(null);
 
   const current = index >= 0 && index < queue.length ? queue[index] : null;
 
@@ -74,6 +82,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const currentRef = useRef(current);
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const failCountRef = useRef<Record<string, number>>({});
+  const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   queueRef.current = queue;
   indexRef.current = index;
@@ -94,6 +103,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     () => () => {
       if (skipTimerRef.current) {
         clearTimeout(skipTimerRef.current);
+      }
+      if (sleepTimerRef.current) {
+        clearTimeout(sleepTimerRef.current);
       }
     },
     [],
@@ -177,6 +189,28 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const setRate = useCallback((value: number) => setRateState(value), []);
+
+  const setSleepMinutes = useCallback((minutes: number) => {
+    if (sleepTimerRef.current) {
+      clearTimeout(sleepTimerRef.current);
+      sleepTimerRef.current = null;
+    }
+    if (minutes <= 0) {
+      setSleepMinutesState(0);
+      setSleepDeadline(null);
+      return;
+    }
+    // 记绝对到期时间而不是递减计数：离开播放页或 JS 线程被挂起后仍按真实时间到点
+    const deadline = Date.now() + minutes * 60000;
+    setSleepMinutesState(minutes);
+    setSleepDeadline(deadline);
+    sleepTimerRef.current = setTimeout(() => {
+      sleepTimerRef.current = null;
+      setSleepMinutesState(0);
+      setSleepDeadline(null);
+      setPlaying(false);
+    }, minutes * 60000);
+  }, []);
 
   const clearQueue = useCallback(() => {
     setPlaying(false);
@@ -263,13 +297,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const actions = useMemo<PlayerActions>(
-    () => ({ play, jumpTo, toggle, next, prev, seek, cycleRepeat, setRate, clearQueue, removeAt, retry }),
-    [play, jumpTo, toggle, next, prev, seek, cycleRepeat, setRate, clearQueue, removeAt, retry],
+    () => ({ play, jumpTo, toggle, next, prev, seek, cycleRepeat, setRate, clearQueue, removeAt, retry, setSleepMinutes }),
+    [play, jumpTo, toggle, next, prev, seek, cycleRepeat, setRate, clearQueue, removeAt, retry, setSleepMinutes],
   );
 
   const state = useMemo<PlayerState>(
-    () => ({ queue, index, current, playing, position, duration, repeat, rate, failed, reloadToken }),
-    [queue, index, current, playing, position, duration, repeat, rate, failed, reloadToken],
+    () => ({ queue, index, current, playing, position, duration, repeat, rate, failed, reloadToken, sleepMinutes, sleepDeadline }),
+    [queue, index, current, playing, position, duration, repeat, rate, failed, reloadToken, sleepMinutes, sleepDeadline],
   );
 
   return (

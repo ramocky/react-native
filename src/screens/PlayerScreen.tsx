@@ -32,36 +32,23 @@ const PlayerScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const player = usePlayer();
   const { isFavorite, toggleFavorite } = useLibrary();
-  const [sleepStep, setSleepStep] = useState(0);
-  const [remaining, setRemaining] = useState(0);
   const [artworkBroken, setArtworkBroken] = useState(false);
+  // 只用来驱动倒计时重绘，剩余秒数按到期时间戳实时推算
+  const [now, setNow] = useState(() => Date.now());
   const { current } = player;
 
   useEffect(() => {
-    setRemaining(SLEEP_MINUTES[sleepStep] * 60);
-  }, [sleepStep]);
+    if (!player.sleepDeadline) {
+      return;
+    }
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [player.sleepDeadline]);
 
   useEffect(() => {
     setArtworkBroken(false);
   }, [current?.source, current?.id]);
-
-  useEffect(() => {
-    if (SLEEP_MINUTES[sleepStep] === 0) {
-      return;
-    }
-    if (remaining <= 0) {
-      // 倒计时结束：关闭定时并暂停播放
-      setSleepStep(0);
-      if (player.playing) {
-        player.toggle();
-      }
-      return;
-    }
-    const timer = setTimeout(() => setRemaining(prev => prev - 1), 1000);
-    return () => clearTimeout(timer);
-    // player 每秒都会变化，这里只关心播放状态的即时值
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remaining, sleepStep]);
 
   if (!current) {
     return (
@@ -73,13 +60,18 @@ const PlayerScreen: React.FC<Props> = ({ navigation }) => {
 
   const favorite = isFavorite(current);
   const showArtwork = Boolean(current.artwork) && !artworkBroken;
+  const sleepOn = player.sleepMinutes > 0;
+  const remaining = player.sleepDeadline ? Math.max(0, Math.ceil((player.sleepDeadline - now) / 1000)) : 0;
 
   const cycleRate = () => {
     const next = (RATES.indexOf(player.rate) + 1) % RATES.length;
     player.setRate(RATES[next]);
   };
 
-  const cycleSleep = () => setSleepStep(prev => (prev + 1) % SLEEP_MINUTES.length);
+  const cycleSleep = () => {
+    const at = Math.max(0, SLEEP_MINUTES.indexOf(player.sleepMinutes));
+    player.setSleepMinutes(SLEEP_MINUTES[(at + 1) % SLEEP_MINUTES.length]);
+  };
 
   const share = () => {
     void Share.share({
@@ -179,11 +171,11 @@ const PlayerScreen: React.FC<Props> = ({ navigation }) => {
           hitSlop={8}
           style={styles.action}
           accessibilityRole="button"
-          accessibilityLabel={sleepStep > 0 ? `定时关闭，剩余 ${formatCountdown(remaining)}` : '定时关闭'}>
+          accessibilityLabel={sleepOn ? `定时关闭，剩余 ${formatCountdown(remaining)}` : '定时关闭'}>
           <View style={styles.actionRow}>
-            <ClockIcon color={sleepStep > 0 ? theme.accent : theme.muted} />
-            <Text style={[styles.actionText, sleepStep > 0 && styles.actionActive]}>
-              {sleepStep > 0 ? formatCountdown(remaining) : '定时'}
+            <ClockIcon color={sleepOn ? theme.accent : theme.muted} />
+            <Text style={[styles.actionText, sleepOn && styles.actionActive]}>
+              {sleepOn ? formatCountdown(remaining) : '定时'}
             </Text>
           </View>
         </Pressable>
